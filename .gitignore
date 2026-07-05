@@ -1,15 +1,46 @@
+# Gradle files
+.gradle/
+build/
+
+# IDE files
+.idea/
 *.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
-.DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+*.iws
+*.ipr
+out/
+
+# Android Studio specific
+captures/
+.externalNativeBuild/
+.cxx/
 local.properties
+.navigation/
+
+# Log files
+*.log
+hs_err_pid*
+replay_pid*
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# Signing files
+*.jks
+*.keystore
+*.pk8
+*.pem
+
+# Generated files
+/bin/
+/gen/
+
+# Secrets (if any)
+google-services.json
