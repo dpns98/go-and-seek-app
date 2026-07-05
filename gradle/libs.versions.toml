@@ -11,6 +11,7 @@ okhttp = "4.12.0"
 gson = "2.11.0"
 coil = "2.7.0"
 playServicesLocation = "21.3.0"
+koroutinesPlayServices = "1.8.1"
 activityCompose = "1.10.0"
 kotlin = "2.1.0"
 composeBom = "2025.01.01"
@@ -38,6 +39,7 @@ okhttp-logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-i
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coil" }
 play-services-location = { group = "com.google.android.gms", name = "play-services-location", version.ref = "playServicesLocation" }
+kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "koroutinesPlayServices" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

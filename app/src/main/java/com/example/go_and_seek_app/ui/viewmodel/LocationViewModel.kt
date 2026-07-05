@@ -10,9 +10,10 @@ import kotlinx.coroutines.launch
 data class LocationUiState(
     val isLoading: Boolean = false,
     val imageBase64: String? = null,
-    val lat: Double? = null,
-    val lng: Double? = null,
+    val responseLat: Double? = null,
+    val responseLng: Double? = null,
     val heading: Double? = null,
+    val distanceMeters: Float? = null,
     val error: String? = null
 )
 
@@ -23,18 +24,21 @@ class LocationViewModel(
     private val _uiState = MutableStateFlow(LocationUiState())
     val uiState: StateFlow<LocationUiState> = _uiState
 
-    fun fetchLocation(lat: Double, lon: Double) {
+    fun fetchInitialLocation(lat: Double, lon: Double) {
         viewModelScope.launch {
             _uiState.value = LocationUiState(isLoading = true)
             val result = repository.getLocation(lat, lon)
             result.fold(
                 onSuccess = { response ->
+                    val results = FloatArray(1)
+                    android.location.Location.distanceBetween(lat, lon, response.lat, response.lng, results)
                     _uiState.value = LocationUiState(
                         isLoading = false,
                         imageBase64 = response.image,
-                        lat = response.lat,
-                        lng = response.lng,
-                        heading = response.heading
+                        responseLat = response.lat,
+                        responseLng = response.lng,
+                        heading = response.heading,
+                        distanceMeters = results[0]
                     )
                 },
                 onFailure = { error ->
@@ -45,5 +49,18 @@ class LocationViewModel(
                 }
             )
         }
+    }
+
+    fun resetState() {
+        _uiState.value = LocationUiState()
+    }
+
+    fun updateDeviceLocation(deviceLat: Double, deviceLon: Double) {
+        val current = _uiState.value
+        val rLat = current.responseLat ?: return
+        val rLng = current.responseLng ?: return
+        val results = FloatArray(1)
+        android.location.Location.distanceBetween(deviceLat, deviceLon, rLat, rLng, results)
+        _uiState.value = current.copy(distanceMeters = results[0])
     }
 }
