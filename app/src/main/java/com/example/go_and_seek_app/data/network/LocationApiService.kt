@@ -8,6 +8,8 @@ interface LocationApiService {
     @GET("location")
     suspend fun getLocation(
         @Query("lat") lat: Double,
-        @Query("lon") lon: Double
+        @Query("lon") lon: Double,
+        @Query("width") width: Int,
+        @Query("height") height: Int
     ): LocationResponse
 }

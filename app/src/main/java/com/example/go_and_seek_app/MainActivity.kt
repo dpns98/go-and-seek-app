@@ -12,15 +12,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
@@ -37,11 +34,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.go_and_seek_app.ui.theme.GoandseekappTheme
 import com.example.go_and_seek_app.ui.viewmodel.LocationViewModel
@@ -72,10 +73,15 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val configuration = LocalConfiguration.current
+    val screenWidthPx = (configuration.screenWidthDp * context.resources.displayMetrics.density).toInt()
+    val screenHeightPx = (configuration.screenHeightDp * context.resources.displayMetrics.density).toInt()
 
     var locationPermissionGranted by remember { mutableStateOf(false) }
     var showFoundDialog by remember { mutableStateOf(false) }
     var playAgainTrigger by remember { mutableStateOf(0) }
+    var lastKnownLat by remember { mutableStateOf(0.0) }
+    var lastKnownLon by remember { mutableStateOf(0.0) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -102,13 +108,17 @@ fun MainScreen(
         // Make the initial request once
         val initialLocation = fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
         if (initialLocation != null) {
-            viewModel.fetchInitialLocation(initialLocation.latitude, initialLocation.longitude)
+            lastKnownLat = initialLocation.latitude
+            lastKnownLon = initialLocation.longitude
+            viewModel.fetchInitialLocation(initialLocation.latitude, initialLocation.longitude, screenWidthPx, screenHeightPx)
         }
         // Then every 5s only update device location and recalculate distance
         while (true) {
             delay(5_000L)
             val location = fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
             if (location != null) {
+                lastKnownLat = location.latitude
+                lastKnownLon = location.longitude
                 viewModel.updateDeviceLocation(location.latitude, location.longitude)
             }
         }
@@ -128,6 +138,7 @@ fun MainScreen(
             confirmButton = {
                 Button(onClick = {
                     showFoundDialog = false
+                    viewModel.onLocationSolved()
                     viewModel.resetState()
                     playAgainTrigger++
                 }) {
@@ -144,27 +155,70 @@ fun MainScreen(
         )
     }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Street View image from API response
+    Box(modifier = modifier.fillMaxSize()) {
         when {
-            uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.size(64.dp))
+            uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.size(64.dp).align(Alignment.Center))
             uiState.imageBase64 != null -> StreetViewImage(base64 = uiState.imageBase64!!)
-            uiState.error != null -> Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
+            uiState.error != null -> Text(
+                text = "Error: ${uiState.error}",
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.align(Alignment.Center)
+            )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        uiState.distanceMeters?.let { meters ->
+            Text(
+                text = "%.0f m".format(meters),
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+                    .background(Color(0xFF1565C0), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            )
+        }
 
         Text(
-            text = "Distance: ${uiState.distanceMeters?.let { "%.0f m".format(it) } ?: "-"}",
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            text = "Score: ${uiState.score}",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(16.dp)
+                .background(Color(0xFF1565C0), RoundedCornerShape(12.dp))
+                .padding(horizontal = 12.dp, vertical = 6.dp)
         )
+
+        Button(
+            onClick = {
+                val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+                fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { location ->
+                        val lat = location?.latitude ?: lastKnownLat
+                        val lon = location?.longitude ?: lastKnownLon
+                        if (location != null) {
+                            lastKnownLat = lat
+                            lastKnownLon = lon
+                        }
+                        viewModel.skipLocation(lat, lon, screenWidthPx, screenHeightPx)
+                    }
+                    .addOnFailureListener {
+                        viewModel.skipLocation(lastKnownLat, lastKnownLon, screenWidthPx, screenHeightPx)
+                    }
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Skip",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
     }
 }
 
@@ -178,9 +232,7 @@ fun StreetViewImage(base64: String) {
         Image(
             bitmap = bitmap.asImageBitmap(),
             contentDescription = "Street View Image",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(400.dp),
+            modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
     }
