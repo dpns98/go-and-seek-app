@@ -35,7 +35,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -99,12 +98,12 @@ fun MainScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Requested 600x400 image at the top
-        Image(
-            painter = painterResource(id = R.drawable.ic_launcher_foreground),
-            contentDescription = "Header Image",
-            modifier = Modifier.size(width = 600.dp, height = 400.dp)
-        )
+        // Street View image from API response
+        when {
+            uiState.isLoading -> CircularProgressIndicator(modifier = Modifier.size(64.dp))
+            uiState.imageBase64 != null -> StreetViewImage(base64 = uiState.imageBase64!!)
+            uiState.error != null -> Text(text = "Error: ${uiState.error}", color = MaterialTheme.colorScheme.error)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
