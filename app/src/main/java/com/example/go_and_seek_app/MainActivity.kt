@@ -112,9 +112,9 @@ fun MainScreen(
             lastKnownLon = initialLocation.longitude
             viewModel.fetchInitialLocation(initialLocation.latitude, initialLocation.longitude, screenWidthPx, screenHeightPx)
         }
-        // Then every 5s only update device location and recalculate distance
+        // Then every 3s only update device location and recalculate distance
         while (true) {
-            delay(5_000L)
+            delay(3_000L)
             val location = fusedClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null).await()
             if (location != null) {
                 lastKnownLat = location.latitude

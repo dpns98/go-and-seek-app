@@ -12,7 +12,6 @@ data class LocationUiState(
     val imageBase64: String? = null,
     val responseLat: Double? = null,
     val responseLng: Double? = null,
-    val heading: Double? = null,
     val distanceMeters: Float? = null,
     val error: String? = null,
     val score: Int = 0,
@@ -40,7 +39,6 @@ class LocationViewModel(
                         imageBase64 = response.image,
                         responseLat = response.lat,
                         responseLng = response.lng,
-                        heading = response.heading,
                         distanceMeters = results[0],
                         score = current.score,
                         skipCount = current.skipCount
@@ -84,7 +82,6 @@ class LocationViewModel(
                         imageBase64 = response.image,
                         responseLat = response.lat,
                         responseLng = response.lng,
-                        heading = response.heading,
                         distanceMeters = results[0],
                         score = newScore,
                         skipCount = newSkipCount
